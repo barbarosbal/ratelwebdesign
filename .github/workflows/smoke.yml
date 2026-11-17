@@ -1,0 +1,32 @@
+name: Önizleme tarayıcı testleri
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Tarayıcı testlerini kur
+        run: |
+          npm install --no-save @playwright/test@latest
+          npx playwright install --with-deps chromium
+      - name: Statik sunucuyu başlat
+        run: |
+          python3 -m http.server 4173 > /tmp/ratel-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ratel-preview.log
+          exit 1
+      - name: Chromium smoke testleri
+        run: npx playwright test tests/smoke.spec.js --browser=chromium --reporter=line --workers=1
