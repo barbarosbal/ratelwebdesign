@@ -44,6 +44,26 @@ test('yeni web sitesi mobil menüsü ve iletişim bağlantıları çalışır', 
   await expect(page.locator('a[href="mailto:serafettin@nuhelektrik.com.tr"]').first()).toHaveAttribute('href','mailto:serafettin@nuhelektrik.com.tr');
 });
 
+test('önizlemeler arama motorlarına kapalı', async ({ page }) => {
+  for (const path of ['/', '/nuhelektirik/', '/nuhelektirik/site/', '/ozgelecekmermer/']) {
+    await page.goto(base + path, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('meta[name="robots"]'), path).toHaveAttribute('content', /noindex/);
+  }
+});
+
+test('Öz Gelecek konsepti resmî site gibi görünmez ve hatasız açılır', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(String(error)));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(base + '/ozgelecekmermer/');
+  await expect(page.getByTestId('demo-disclaimer')).toBeVisible();
+  await expect(page.getByTestId('demo-disclaimer')).toContainText('resmî web sitesi değildir');
+  await expect(page).toHaveTitle(/Tasarım konsepti/);
+  // A demo does not declare itself as the business to search engines.
+  await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('alternatif doğru yazım yolu yönlendirir', async ({ page }) => {
   await page.goto(base + '/nuhelektrik/');
   await expect(page).toHaveURL(/\/nuhelektirik\/$/);
